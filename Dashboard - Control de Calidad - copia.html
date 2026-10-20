@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAPEX - Dashboard de Control de Calidad</title>
+    <!-- SDK de Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js para Gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Font Awesome para Iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        brand: ['Montserrat', 'sans-serif']
+                    },
+                    colors: {
+                        capex: {
+                            green: '#3c4e47',
+                            dark: '#2c3934',
+                            light: '#f1f5f3',
+                            accent: '#4e655c',
+                            border: '#d1dcd7'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .active-tab {
+            background-color: #3c4e47;
+            color: #ffffff !important;
+            font-weight: 600;
+        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f3; }
+        ::-webkit-scrollbar-thumb { background: #a3b5ad; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3c4e47; }
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white; color: black; }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800 flex flex-col justify-between">
+
+    <!-- Header principal -->
+    <header class="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-50 no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <div class="flex items-center cursor-pointer py-2" onclick="switchTab('dashboard')">
+                    <svg class="h-11 w-auto" viewBox="0 0 380 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <g transform="translate(5, 5)">
+                            <rect x="0" y="0" width="52" height="78" rx="2" stroke="#3c4e47" stroke-width="3" fill="none"/>
+                            <path d="M 12 0 C 12 25, 2 35, 2 78" stroke="#3c4e47" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+                            <path d="M 24 0 C 24 20, 14 30, 14 55 C 14 70, 20 78, 20 78" stroke="#3c4e47" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+                            <path d="M 38 12 C 48 20, 48 38, 38 48 C 30 40, 30 20, 38 12 Z" stroke="#3c4e47" stroke-width="2.2" fill="none"/>
+                            <path d="M 39 22 C 43 26, 43 32, 39 36 C 36 32, 36 26, 39 22 Z" stroke="#3c4e47" stroke-width="2" fill="none"/>
+                            <path d="M 32 0 C 30 8, 26 12, 26 22" stroke="#3c4e47" stroke-width="2" fill="none" stroke-linecap="round"/>
+                            <path d="M 28 58 C 36 62, 48 65, 48 78" stroke="#3c4e47" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+                            <path d="M 38 52 C 44 55, 52 58, 52 68" stroke="#3c4e47" stroke-width="2" fill="none" stroke-linecap="round"/>
+                            <path d="M 2 30 C 8 36, 10 44, 2 52" stroke="#3c4e47" stroke-width="2" fill="none" stroke-linecap="round"/>
+                        </g>
+                        <text x="75" y="60" font-family="'Montserrat', sans-serif" font-size="62" font-weight="800" fill="#3c4e47" letter-spacing="1">CAPEX</text>
+                        <text x="272" y="80" font-family="'Inter', sans-serif" font-size="16" font-weight="500" fill="#3c4e47" letter-spacing="0.2">Puertas de madera</text>
+                    </svg>
+                </div>
+
+                <nav class="flex space-x-1 sm:space-x-3">
+                    <button id="nav-dashboard" onclick="switchTab('dashboard')" class="active-tab px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition duration-150 flex items-center gap-2 shadow-sm">
+                        <i class="fa-solid fa-chart-pie"></i> <span class="hidden sm:inline">Dashboard</span> Principal
+                    </button>
+                    <button id="nav-records" onclick="switchTab('records')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition duration-150 flex items-center gap-2">
+                        <i class="fa-solid fa-door-open"></i> Puertas Rechazadas
+                    </button>
+                    <button id="nav-register" onclick="switchTab('register')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition duration-150 flex items-center gap-2">
+                        <i class="fa-solid fa-circle-plus text-capex-green"></i> Registrar Rechazo
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Notificación Toast -->
+    <div id="toast" class="fixed top-24 right-5 z-50 transform translate-x-full transition-transform duration-300 ease-in-out bg-capex-green text-white px-5 py-3 rounded-xl shadow-2xl flex items-center space-x-3 border-l-4 border-amber-400 hidden">
+        <i id="toast-icon" class="fa-solid fa-check-circle text-amber-400 text-xl"></i>
+        <span id="toast-message" class="text-sm font-medium">Mensaje de notificación</span>
+    </div>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-grow">
+
+        <!-- DASHBOARD PRINCIPAL -->
+        <section id="tab-dashboard" class="space-y-6">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <div>
+                    <h1 class="text-2xl font-bold text-capex-green">Control de Calidad - Planta Puertas</h1>
+                    <p class="text-sm text-slate-500">Indicadores de calidad, control de scrap y clasificación de mermas.</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <!-- Selector de Período para Resumen -->
+                    <div class="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+                        <label for="filter-period" class="text-xs font-bold text-slate-600 flex items-center gap-1.5">
+                            <i class="fa-solid fa-calendar-days text-capex-green"></i> Resumen:
+                        </label>
+                        <select id="filter-period" onchange="updateDashboard()" class="bg-transparent text-slate-700 text-xs font-semibold focus:outline-none cursor-pointer">
+                            <option value="month" selected>Este Mes</option>
+                            <option value="week">Esta Semana</option>
+                            <option value="today">Hoy</option>
+                            <option value="all">Todo el Histórico</option>
+                        </select>
+                    </div>
+
+                    <button onclick="loadRecords()" class="px-3 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition flex items-center gap-1.5 border border-slate-200">
+                        <i class="fa-solid fa-rotate"></i> Actualizar
+                    </button>
+                    <div class="text-xs bg-slate-100 border border-slate-200 px-3 py-2 rounded-xl text-slate-600 flex items-center gap-2 font-medium">
+                        <i class="fa-regular fa-clock text-capex-green"></i> <span id="last-update-time">Hoy</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-xs font-bold uppercase text-slate-400 tracking-wider">Total Registros</p>
+                            <h3 id="kpi-total-incidents" class="text-3xl font-black text-slate-800 mt-2">0</h3>
+                        </div>
+                        <div class="p-3 bg-slate-100 text-capex-green rounded-xl">
+                            <i class="fa-solid fa-clipboard-list text-xl"></i>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-3 font-medium">Folios de rechazo emitidos</p>
+                </div>
+
+                <div onclick="switchTab('records')" class="bg-gradient-to-br from-capex-green to-capex-dark text-white p-5 rounded-2xl shadow-sm hover:shadow-lg transition cursor-pointer transform hover:-translate-y-0.5">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-xs font-bold uppercase text-slate-200 tracking-wider">Puertas Rechazadas</p>
+                            <h3 id="kpi-total-doors" class="text-3xl font-black mt-2">0</h3>
+                        </div>
+                        <div class="p-3 bg-white/10 text-amber-300 rounded-xl">
+                            <i class="fa-solid fa-door-closed text-xl"></i>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-200 mt-3 flex items-center justify-between font-medium">
+                        <span>Total de piezas impactadas</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </p>
+                </div>
+
+                <div onclick="filterByStatus('Sin Reparación')" class="bg-gradient-to-br from-rose-700 to-rose-900 text-white p-5 rounded-2xl shadow-sm hover:shadow-lg transition cursor-pointer transform hover:-translate-y-0.5 border border-rose-800">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-xs font-bold uppercase text-rose-200 tracking-wider">PUERTAS DE SEGUNDA</p>
+                            <h3 id="kpi-second-doors" class="text-3xl font-black mt-2">0</h3>
+                        </div>
+                        <div class="p-3 bg-white/10 text-rose-200 rounded-xl">
+                            <i class="fa-solid fa-dumpster-fire text-xl"></i>
+                        </div>
+                    </div>
+                    <p class="text-xs text-rose-200 mt-3 flex items-center justify-between font-medium">
+                        <span>Sin Reparación / Scrap</span>
+                        <i class="fa-solid fa-filter"></i>
+                    </p>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-xs font-bold uppercase text-slate-400 tracking-wider">Defecto Más Recurrente</p>
+                            <h3 id="kpi-main-defect" class="text-lg font-bold text-slate-800 mt-2 truncate max-w-[170px]">-</h3>
+                        </div>
+                        <div class="p-3 bg-amber-50 text-amber-600 rounded-xl">
+                            <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+                        </div>
+                    </div>
+                    <p id="kpi-main-defect-count" class="text-xs text-slate-500 mt-3 font-medium">0 puertas afectadas</p>
+                </div>
+            </div>
+
+            <!-- KPI: Desglose de Puertas Por Reparar por Modelo y Medida (Interactivo) -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <h3 class="text-base font-bold text-capex-green flex items-center gap-2">
+                            <i class="fa-solid fa-screwdriver-wrench"></i> KPI: Puertas Pendientes "Por Reparar" (por Modelo y Medida)
+                        </h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Haz clic en cualquier fila para filtrar los registros por modelo y medida.</p>
+                    </div>
+                    <span id="kpi-repair-total-badge" class="bg-amber-100 text-amber-800 text-xs px-3 py-1 rounded-full font-bold">Total: 0 pzas</span>
+                </div>
+                <div class="overflow-x-auto max-h-60 border border-slate-200 rounded-xl">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="bg-slate-50 text-slate-500 font-bold uppercase sticky top-0 border-b border-slate-200">
+                            <tr>
+                                <th class="p-3">Modelo de Puerta</th>
+                                <th class="p-3">Medida</th>
+                                <th class="p-3 text-center">Cantidad Pendiente</th>
+                            </tr>
+                        </thead>
+                        <tbody id="kpi-repair-breakdown" class="divide-y divide-slate-100">
+                            <!-- Inyectado dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 lg:col-span-2">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-base font-bold text-capex-green flex items-center gap-2">
+                            <i class="fa-solid fa-industry"></i> Rechazos por Área de Detección
+                        </h3>
+                        <span class="text-xs text-slate-400">(Cantidad de piezas)</span>
+                    </div>
+                    <div class="h-64 relative">
+                        <canvas id="chartArea"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-base font-bold text-capex-green flex items-center gap-2">
+                            <i class="fa-solid fa-chart-pie"></i> Clasificación de Estatus
+                        </h3>
+                    </div>
+                    <div class="h-64 relative flex items-center justify-center">
+                        <canvas id="chartStatus"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 lg:col-span-3">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-base font-bold text-capex-green flex items-center gap-2">
+                            <i class="fa-solid fa-layer-group"></i> Origen de Fallas: Materia Prima vs. Proceso
+                        </h3>
+                    </div>
+                    <div class="h-56 relative">
+                        <canvas id="chartOrigin"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                    <h3 class="text-base font-bold text-capex-green flex items-center gap-2">
+                        <i class="fa-solid fa-clock-rotate-left"></i> Registros Recientes del Período
+                    </h3>
+                    <button onclick="switchTab('records')" class="text-xs font-bold text-capex-green hover:underline flex items-center gap-1">
+                        Ver Lista Completa <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead class="bg-slate-50 text-slate-500 font-bold text-xs uppercase tracking-wider border-b border-slate-200">
+                            <tr>
+                                <th class="p-4">Folio</th>
+                                <th class="p-4">Orden Compra</th>
+                                <th class="p-4">Modelo</th>
+                                <th class="p-4">Medida</th>
+                                <th class="p-4">Área</th>
+                                <th class="p-4">Defecto</th>
+                                <th class="p-4 text-center">Cant.</th>
+                                <th class="p-4">Estatus</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recent-records-tbody" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- REGISTRAR RECHAZO -->
+        <section id="tab-register" class="hidden space-y-6">
+            <div class="max-w-4xl mx-auto bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-200">
+                <div class="border-b border-slate-200 pb-4 mb-6">
+                    <h2 class="text-xl font-bold text-capex-green flex items-center gap-2">
+                        <i class="fa-solid fa-file-circle-plus"></i> Captura de Rechazo de Calidad
+                    </h2>
+                    <p class="text-sm text-slate-500">Ingrese la información exacta de la puerta o lote dictaminado.</p>
+                </div>
+
+                <form id="rejection-form" onsubmit="handleFormSubmit(event)" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Folio *</label>
+                            <input type="text" id="input-folio" required placeholder="Ej: FOL-2026-001" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-capex-green transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Orden de Compra (OC) *</label>
+                            <input type="text" id="input-oc" required placeholder="Ej: OC-9942" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-capex-green transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Medida de la Puerta *</label>
+                            <input type="text" id="input-measure" required placeholder="Ej: 0.90m x 2.13m" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-capex-green transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Cantidad de Puertas *</label>
+                            <input type="number" id="input-quantity" min="1" value="1" required class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-capex-green transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Modelo de Puerta *</label>
+                            <select id="select-model" required class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-capex-green transition">
+                                <option value="">Seleccione modelo...</option>
+                                <option value="Eucaplac Arena">Eucaplac Arena</option>
+                                <option value="Eucaplac Chocolate">Eucaplac Chocolate</option>
+                                <option value="Premium Gris">Premium Gris</option>
+                                <option value="Premium Gris 4 Líneas">Premium Gris 4 Líneas</option>
+                                <option value="Premium Chocolate 4 Líneas">Premium Chocolate 4 Líneas</option>
+                                <option value="Premium Moka">Premium Moka</option>
+                                <option value="Premium Nogal">Premium Nogal</option>
+                                <option value="Premium Roble">Premium Roble</option>
+                                <option value="Premium Siberia">Premium Siberia</option>
+                                <option value="Caobilla 3 mm">Caobilla 3 mm</option>
+                                <option value="Caobilla 6mm">Caobilla 6mm</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Área de Detección *</label>
+                            <select id="select-area" required class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-capex-green transition">
+                                <option value="">Seleccione área...</option>
+                                <option value="Prensado">Prensado</option>
+                                <option value="Escuadrado">Escuadrado</option>
+                                <option value="Enchapado">Enchapado</option>
+                                <option value="Pintura CNC">Pintura CNC</option>
+                                <option value="Empaque">Empaque</option>
+                                <option value="CNC Router">CNC Router</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Defecto Específico *</label>
+                            <select id="select-defect" required class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-capex-green transition">
+                                <option value="">Seleccione defecto...</option>
+                                <option value="Descuadrado">Descuadrado</option>
+                                <option value="Perforada">Perforada</option>
+                                <option value="Rayada">Rayada</option>
+                                <option value="Quebrada">Quebrada</option>
+                                <option value="Mal Routeada">Mal Routeada</option>
+                                <option value="Despegada">Despegada</option>
+                                <option value="Defecto de Hoja">Defecto de Hoja</option>
+                                <option value="Mal Pintada">Mal Pintada</option>
+                                <option value="Otros">Otros</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Estatus Inicial *</label>
+                            <select id="select-status" required class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-capex-green transition">
+                                <option value="Por Reparar">Por Reparar</option>
+                                <option value="Reparada">Reparada</option>
+                                <option value="Sin Reparación">Sin Reparación (Puerta de Segunda)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Origen del Defecto *</label>
+                            <select id="select-origin" required class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-capex-green transition">
+                                <option value="Defecto de Materia Prima">Defecto de Materia Prima</option>
+                                <option value="Dañada por Proceso">Dañada por Proceso</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Observaciones / Causa Raíz</label>
+                        <textarea id="input-notes" rows="3" placeholder="Detalles de inspección, lote de insumo o causa técnica..." class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-capex-green transition"></textarea>
+                    </div>
+
+                    <div class="flex items-center justify-end space-x-3 pt-4 border-t border-slate-100">
+                        <button type="button" onclick="resetForm()" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold text-sm rounded-xl transition">Limpiar Formulario</button>
+                        <button type="submit" class="px-6 py-2.5 bg-capex-green hover:bg-capex-dark text-white font-semibold text-sm rounded-xl shadow-md transition flex items-center gap-2">
+                            <i class="fa-solid fa-floppy-disk"></i> Guardar Rechazo
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- LISTADO COMPLETO -->
+        <section id="tab-records" class="hidden space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-capex-green">Listado de Puertas Rechazadas</h2>
+                        <p class="text-sm text-slate-500">Gestione, actualice el estatus de reparación y exporte dictámenes.</p>
+                    </div>
+                    <div class="flex items-center space-x-2 no-print">
+                        <button onclick="exportToCSV()" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl shadow transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-file-excel"></i> Exportar a Excel (CSV)
+                        </button>
+                        <button onclick="window.print()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl shadow transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-print"></i> Imprimir Reporte
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2 no-print">
+                    <input type="text" id="filter-search" oninput="applyFilters()" placeholder="Buscar Folio, OC, Modelo, Medida..." class="w-full pl-3 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-capex-green">
+                    <select id="filter-area" onchange="applyFilters()" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-capex-green">
+                        <option value="">Todas las Áreas</option>
+                        <option value="Prensado">Prensado</option>
+                        <option value="Escuadrado">Escuadrado</option>
+                        <option value="Enchapado">Enchapado</option>
+                        <option value="Pintura CNC">Pintura CNC</option>
+                        <option value="Empaque">Empaque</option>
+                        <option value="CNC Router">CNC Router</option>
+                    </select>
+                    <select id="filter-status" onchange="applyFilters()" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-capex-green">
+                        <option value="">Todos los Estatus</option>
+                        <option value="Por Reparar">Por Reparar</option>
+                        <option value="Reparada">Reparada</option>
+                        <option value="Sin Reparación">Sin Reparación (Puerta de Segunda)</option>
+                    </select>
+                    <select id="filter-origin" onchange="applyFilters()" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-capex-green">
+                        <option value="">Todos los Orígenes</option>
+                        <option value="Defecto de Materia Prima">Defecto de Materia Prima</option>
+                        <option value="Dañada por Proceso">Dañada por Proceso</option>
+                    </select>
+                </div>
+
+                <div class="overflow-x-auto border border-slate-200 rounded-xl">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="bg-slate-100 text-slate-700 font-bold uppercase tracking-wider border-b border-slate-200">
+                            <tr>
+                                <th class="p-3">Folio</th>
+                                <th class="p-3">OC</th>
+                                <th class="p-3">Modelo</th>
+                                <th class="p-3">Medida</th>
+                                <th class="p-3">Área</th>
+                                <th class="p-3">Defecto</th>
+                                <th class="p-3 text-center">Cant.</th>
+                                <th class="p-3">Estatus</th>
+                                <th class="p-3">Origen</th>
+                                <th class="p-3">Fecha</th>
+                                <th class="p-3 text-center no-print">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="records-tbody" class="divide-y divide-slate-200 bg-white"></tbody>
+                    </table>
+                </div>
+
+                <div class="flex justify-between items-center text-xs text-slate-500 pt-2">
+                    <span id="records-counter">Mostrando 0 registros</span>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal de Detalle -->
+    <div id="detail-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden no-print">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 m-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="text-lg font-bold text-capex-green flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info"></i> Expediente de Rechazo
+                </h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div id="modal-content" class="space-y-3 text-sm text-slate-600"></div>
+            <div class="pt-3 border-t border-slate-100 flex justify-end">
+                <button onclick="closeModal()" class="px-4 py-2 bg-capex-green text-white rounded-xl text-xs font-semibold hover:bg-capex-dark transition">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-white text-slate-500 text-xs py-6 border-t border-slate-200 mt-12 no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-2">
+                <span class="font-bold text-capex-green">CAPEX - Puertas de Madera</span>
+                <span>&copy; 2026 Sistema de Gestión de Calidad</span>
+            </div>
+            <div class="text-slate-400">Aseguramiento de Calidad Industrial</div>
+        </div>
+    </footer>
+
+    <script>
+        // =========================================================
+        // CONFIGURACIÓN DE SUPABASE CON TUS CREDENCIALES
+        // =========================================================
+        const SUPABASE_URL = 'https://cczurjwnajiwdnlgqulm.supabase.co'; 
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjenVyanduYWppd2RubGdxdWxtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwMjY0NTksImV4cCI6MjEwNTYwMjQ1OX0.d-y9UCDcL0j8_nWLKl9mR-iOXOCc3dzWJARfPd7xdKM';
+
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let records = [];
+        let chartAreaInstance = null;
+        let chartStatusInstance = null;
+        let chartOriginInstance = null;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadRecords();
+            document.getElementById('last-update-time').innerText = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            autoGenerateFolio();
+        });
+
+        // 1. CARGAR REGISTROS DESDE SUPABASE
+        async function loadRecords() {
+            const { data, error } = await _supabase
+                .from('rechazos')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error('Error al cargar datos de Supabase:', error);
+                showToast("Error al conectar con la base de datos");
+            } else {
+                records = data || [];
+                updateDashboard();
+                renderRecordsTable();
+            }
+        }
+
+        function autoGenerateFolio() {
+            const nextIndex = records.length + 1;
+            const padded = String(nextIndex).padStart(3, '0');
+            document.getElementById('input-folio').value = `FOL-2026-${padded}`;
+        }
+
+        // 2. GUARDAR REGISTROS EN SUPABASE
+        async function handleFormSubmit(event) {
+            event.preventDefault();
+
+            const folio = document.getElementById('input-folio').value.trim();
+            const oc = document.getElementById('input-oc').value.trim();
+            const measure = document.getElementById('input-measure').value.trim();
+            const quantity = parseInt(document.getElementById('input-quantity').value) || 1;
+            const model = document.getElementById('select-model').value;
+            const area = document.getElementById('select-area').value;
+            const defect = document.getElementById('select-defect').value;
+            const status = document.getElementById('select-status').value;
+            const origin = document.getElementById('select-origin').value;
+            const notes = document.getElementById('input-notes').value.trim();
+
+            const newRecord = {
+                folio: folio,
+                orden_compra: oc,
+                medida: measure,
+                cantidad: quantity,
+                modelo: model,
+                area: area,
+                defecto: defect,
+                estatus: status,
+                origen: origin,
+                notes: notes,
+                date: new Date().toISOString().split('T')[0]
+            };
+
+            const { data, error } = await _supabase
+                .from('rechazos')
+                .insert([newRecord]);
+
+            if (error) {
+                console.error('Error al guardar en Supabase:', error);
+                showToast("Error al guardar el registro en la nube");
+            } else {
+                showToast("Rechazo guardado y sincronizado");
+                resetForm();
+                await loadRecords();
+                switchTab('records');
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('rejection-form').reset();
+            autoGenerateFolio();
+        }
+
+        function switchTab(tabId) {
+            document.getElementById('tab-dashboard').classList.add('hidden');
+            document.getElementById('tab-register').classList.add('hidden');
+            document.getElementById('tab-records').classList.add('hidden');
+
+            document.getElementById('nav-dashboard').className = 'bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition duration-150 flex items-center gap-2';
+            document.getElementById('nav-register').className = 'bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition duration-150 flex items-center gap-2';
+            document.getElementById('nav-records').className = 'bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition duration-150 flex items-center gap-2';
+
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            document.getElementById(`nav-${tabId}`).className = 'active-tab px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition duration-150 flex items-center gap-2 shadow-sm';
+
+            if (tabId === 'dashboard') {
+                updateDashboard();
+            } else if (tabId === 'records') {
+                renderRecordsTable();
+            }
+        }
+
+        function filterByStatus(statusVal) {
+            switchTab('records');
+            document.getElementById('filter-status').value = statusVal;
+            applyFilters();
+        }
+
+        // FILTRAR AUTOMÁTICAMENTE POR MODELO, MEDIDA Y ESTATUS DESDE EL KPI
+        function filterByModelMeasureAndStatus(modelo, medida, statusVal) {
+            switchTab('records');
+            document.getElementById('filter-search').value = modelo;
+            document.getElementById('filter-status').value = statusVal;
+            document.getElementById('filter-area').value = '';
+            document.getElementById('filter-origin').value = '';
+            
+            // Forzar el filtrado detallado considerando también la medida exacta
+            const dataset = getFilteredRecords().filter(r => !medida || r.medida === medida);
+            renderRecordsTable(dataset);
+        }
+
+        // OBTIENE REGISTROS FILTRADOS SEGÚN EL PERÍODO SELECCIONADO
+        function getRecordsByPeriod() {
+            const selectedPeriod = document.getElementById('filter-period').value;
+            const now = new Date();
+
+            return records.filter(record => {
+                if (!record.date) return true;
+
+                const [year, month, day] = record.date.split('-').map(Number);
+                const recordDate = new Date(year, month - 1, day);
+
+                if (selectedPeriod === 'today') {
+                    return recordDate.toDateString() === now.toDateString();
+                } 
+                else if (selectedPeriod === 'week') {
+                    const sevenDaysAgo = new Date();
+                    sevenDaysAgo.setDate(now.getDate() - 7);
+                    return recordDate >= sevenDaysAgo && recordDate <= now;
+                } 
+                else if (selectedPeriod === 'month') {
+                    return recordDate.getMonth() === now.getMonth() && 
+                           recordDate.getFullYear() === now.getFullYear();
+                }
+
+                return true; // 'all'
+            });
+        }
+
+        function updateDashboard() {
+            const currentPeriodRecords = getRecordsByPeriod();
+
+            const totalIncidents = currentPeriodRecords.length;
+            const totalDoors = currentPeriodRecords.reduce((sum, r) => sum + (r.cantidad || 0), 0);
+
+            const secondDoors = currentPeriodRecords
+                .filter(r => r.estatus === 'Sin Reparación')
+                .reduce((sum, r) => sum + (r.cantidad || 0), 0);
+
+            document.getElementById('kpi-total-incidents').innerText = totalIncidents;
+            document.getElementById('kpi-total-doors').innerText = totalDoors;
+            document.getElementById('kpi-second-doors').innerText = secondDoors;
+
+            const defectCounts = {};
+            currentPeriodRecords.forEach(r => {
+                if (r.defecto) {
+                    defectCounts[r.defecto] = (defectCounts[r.defecto] || 0) + (r.cantidad || 0);
+                }
+            });
+
+            let mainDefect = '-';
+            let maxDefectCount = 0;
+
+            for (const [defect, qty] of Object.entries(defectCounts)) {
+                if (qty > maxDefectCount) {
+                    maxDefectCount = qty;
+                    mainDefect = defect;
+                }
+            }
+
+            document.getElementById('kpi-main-defect').innerText = mainDefect;
+            document.getElementById('kpi-main-defect-count').innerText = `${maxDefectCount} piezas afectadas`;
+
+            // RENDERIZAR KPI: DESGLOSE DE PUERTAS "Por Reparar" (UTILIZA TODO EL HISTÓRICO PARA BACKLOG REAL)
+            renderRepairBreakdownKPI(records);
+
+            const recentTbody = document.getElementById('recent-records-tbody');
+            recentTbody.innerHTML = '';
+            
+            const recentRecords = currentPeriodRecords.slice(0, 5);
+            if (recentRecords.length === 0) {
+                recentTbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-slate-400">Sin registros disponibles en este período.</td></tr>`;
+            } else {
+                recentRecords.forEach(r => {
+                    const statusBadge = getStatusBadge(r.estatus);
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-slate-50 transition';
+                    tr.innerHTML = `
+                        <td class="p-4 font-bold text-slate-800">${r.folio}</td>
+                        <td class="p-4 font-mono text-slate-600">${r.orden_compra || '-'}</td>
+                        <td class="p-4 font-medium text-slate-700">${r.modelo || '-'}</td>
+                        <td class="p-4 text-slate-500">${r.medida || '-'}</td>
+                        <td class="p-4 text-slate-600">${r.area || '-'}</td>
+                        <td class="p-4 text-slate-600">${r.defecto || '-'}</td>
+                        <td class="p-4 text-center font-bold">${r.cantidad || 0}</td>
+                        <td class="p-4">${statusBadge}</td>
+                    `;
+                    recentTbody.appendChild(tr);
+                });
+            }
+
+            renderCharts(currentPeriodRecords);
+        }
+
+        // FUNCIÓN PARA CALCULAR Y PINTAR EL KPI POR MODELO Y MEDIDA (INTERACTIVO)
+        function renderRepairBreakdownKPI(dataset) {
+            const tbody = document.getElementById('kpi-repair-breakdown');
+            tbody.innerHTML = '';
+
+            // Filtrar todas las puertas del sistema que están "Por Reparar"
+            const repairList = dataset.filter(r => r.estatus === 'Por Reparar');
+            
+            // Agrupar por clave combinada "Modelo | Medida"
+            const groupedMap = {};
+            let totalRepairCount = 0;
+
+            repairList.forEach(r => {
+                const modelo = r.modelo || 'Sin Modelo';
+                const medida = r.medida || 'N/A';
+                const key = `${modelo}___${medida}`;
+                const qty = r.cantidad || 1;
+
+                if (!groupedMap[key]) {
+                    groupedMap[key] = { modelo, medida, cantidad: 0 };
+                }
+                groupedMap[key].cantidad += qty;
+                totalRepairCount += qty;
+            });
+
+            document.getElementById('kpi-repair-total-badge').innerText = `Total: ${totalRepairCount} pzas`;
+
+            const groupArray = Object.values(groupedMap);
+
+            if (groupArray.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-slate-400">No hay puertas pendientes por reparar.</td></tr>`;
+                return;
+            }
+
+            groupArray.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-amber-50 cursor-pointer transition';
+                tr.setAttribute('title', `Filtrar modelo ${item.modelo} con medida ${item.medida}`);
+                tr.setAttribute('onclick', `filterByModelMeasureAndStatus('${item.modelo}', '${item.medida}', 'Por Reparar')`);
+                tr.innerHTML = `
+                    <td class="p-3 font-semibold text-slate-800 flex items-center gap-1.5">
+                        <i class="fa-solid fa-arrow-pointer text-xs text-amber-600"></i> ${item.modelo}
+                    </td>
+                    <td class="p-3 text-slate-600 font-mono">${item.medida}</td>
+                    <td class="p-3 text-center"><span class="bg-amber-100 text-amber-800 font-bold px-2.5 py-1 rounded-full">${item.cantidad} pzas</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderCharts(dataset = records) {
+            const areas = ['Prensado', 'Escuadrado', 'Enchapado', 'Pintura CNC', 'Empaque', 'CNC Router'];
+            const areaData = areas.map(a => dataset.filter(r => r.area === a).reduce((sum, r) => sum + (r.cantidad || 0), 0));
+
+            const ctxArea = document.getElementById('chartArea').getContext('2d');
+            if (chartAreaInstance) chartAreaInstance.destroy();
+            chartAreaInstance = new Chart(ctxArea, {
+                type: 'bar',
+                data: {
+                    labels: areas,
+                    datasets: [{
+                        label: 'Puertas Rechazadas',
+                        data: areaData,
+                        backgroundColor: '#3c4e47',
+                        borderRadius: 6,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                }
+            });
+
+            const statusLabels = ['Por Reparar', 'Reparada', 'Sin Reparación (Puertas de Segunda)'];
+            const statusData = [
+                records.filter(r => r.estatus === 'Por Reparar').reduce((sum, r) => sum + (r.cantidad || 0), 0),
+                records.filter(r => r.estatus === 'Reparada').reduce((sum, r) => sum + (r.cantidad || 0), 0),
+                records.filter(r => r.estatus === 'Sin Reparación').reduce((sum, r) => sum + (r.cantidad || 0), 0)
+            ];
+
+            const ctxStatus = document.getElementById('chartStatus').getContext('2d');
+            if (chartStatusInstance) chartStatusInstance.destroy();
+            chartStatusInstance = new Chart(ctxStatus, {
+                type: 'doughnut',
+                data: {
+                    labels: statusLabels,
+                    datasets: [{
+                        data: statusData,
+                        backgroundColor: ['#f59e0b', '#10b981', '#be123c']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+
+            const originLabels = ['Defecto de Materia Prima', 'Dañada por Proceso'];
+            const originData = originLabels.map(o => dataset.filter(r => r.origen === o).reduce((sum, r) => sum + (r.cantidad || 0), 0));
+
+            const ctxOrigin = document.getElementById('chartOrigin').getContext('2d');
+            if (chartOriginInstance) chartOriginInstance.destroy();
+            chartOriginInstance = new Chart(ctxOrigin, {
+                type: 'bar',
+                data: {
+                    labels: originLabels,
+                    datasets: [{
+                        label: 'Cantidad de Puertas',
+                        data: originData,
+                        backgroundColor: ['#334e68', '#4e655c'],
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                }
+            });
+        }
+
+        function renderRecordsTable(dataToRender = null) {
+            const dataset = dataToRender || getFilteredRecords();
+            const tbody = document.getElementById('records-tbody');
+            tbody.innerHTML = '';
+
+            const totalPieces = dataset.reduce((sum, r) => sum + (r.cantidad || 0), 0);
+            document.getElementById('records-counter').innerText = `Mostrando ${dataset.length} registros (${totalPieces} piezas en total)`;
+
+            if (dataset.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="11" class="p-8 text-center text-slate-400">
+                            <i class="fa-solid fa-folder-open text-3xl mb-2 block"></i>
+                            No se encontraron registros coincidentes.
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            dataset.forEach(r => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition border-b border-slate-100";
+                
+                tr.innerHTML = `
+                    <td class="p-3 font-bold text-slate-800">${r.folio}</td>
+                    <td class="p-3 text-slate-600 font-mono">${r.orden_compra || '-'}</td>
+                    <td class="p-3 font-medium text-slate-700">${r.modelo || '-'}</td>
+                    <td class="p-3 text-slate-600 font-medium">${r.medida || 'N/A'}</td>
+                    <td class="p-3 text-slate-600">${r.area || '-'}</td>
+                    <td class="p-3 text-slate-600">${r.defecto || '-'}</td>
+                    <td class="p-3 text-center font-bold text-slate-800">${r.cantidad || 0}</td>
+                    <td class="p-3">
+                        <select onchange="updateRecordStatus('${r.id}', this.value)" 
+                            class="text-xs font-semibold rounded-lg px-2 py-1 border border-slate-300 focus:outline-none focus:ring-1 focus:ring-capex-green cursor-pointer ${getStatusSelectColor(r.estatus)}">
+                            <option value="Por Reparar" ${r.estatus === 'Por Reparar' ? 'selected' : ''}>Por Reparar</option>
+                            <option value="Reparada" ${r.estatus === 'Reparada' ? 'selected' : ''}>Reparada</option>
+                            <option value="Sin Reparación" ${r.estatus === 'Sin Reparación' ? 'selected' : ''}>Sin Reparación (Puerta de Segunda)</option>
+                        </select>
+                    </td>
+                    <td class="p-3 text-slate-500 text-2xs">${r.origen || '-'}</td>
+                    <td class="p-3 text-slate-400">${r.date || '-'}</td>
+                    <td class="p-3 text-center space-x-1 no-print">
+                        <button onclick="openModal('${r.id}')" title="Ver detalle" class="p-1.5 text-slate-500 hover:text-capex-green rounded-lg hover:bg-slate-100 transition">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                        <button onclick="deleteRecord('${r.id}')" title="Eliminar" class="p-1.5 text-slate-500 hover:text-rose-600 rounded-lg hover:bg-slate-100 transition">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function getFilteredRecords() {
+            const search = document.getElementById('filter-search').value.toLowerCase();
+            const area = document.getElementById('filter-area').value;
+            const status = document.getElementById('filter-status').value;
+            const origin = document.getElementById('filter-origin').value;
+
+            return records.filter(r => {
+                const matchesSearch = (r.folio && r.folio.toLowerCase().includes(search)) || 
+                                      (r.orden_compra && r.orden_compra.toLowerCase().includes(search)) || 
+                                      (r.modelo && r.modelo.toLowerCase().includes(search)) ||
+                                      (r.medida && r.medida.toLowerCase().includes(search)) ||
+                                      (r.defecto && r.defecto.toLowerCase().includes(search));
+                const matchesArea = !area || r.area === area;
+                const matchesStatus = !status || r.estatus === status;
+                const matchesOrigin = !origin || r.origen === origin;
+
+                return matchesSearch && matchesArea && matchesStatus && matchesOrigin;
+            });
+        }
+
+        function applyFilters() {
+            renderRecordsTable();
+        }
+
+        // 3. ACTUALIZAR ESTATUS EN SUPABASE
+        async function updateRecordStatus(id, newStatus) {
+            const { error } = await _supabase
+                .from('rechazos')
+                .update({ estatus: newStatus })
+                .eq('id', id);
+
+            if (error) {
+                console.error('Error al actualizar estatus:', error);
+                showToast("Error al actualizar estatus");
+            } else {
+                showToast(`Estatus actualizado a: ${newStatus}`);
+                await loadRecords();
+            }
+        }
+
+        // 4. ELIMINAR REGISTRO EN SUPABASE
+        async function deleteRecord(id) {
+            if (confirm("¿Desea eliminar este registro de rechazo?")) {
+                const { error } = await _supabase
+                    .from('rechazos')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) {
+                    console.error('Error al eliminar registro:', error);
+                    showToast("Error al eliminar registro");
+                } else {
+                    showToast("Registro eliminado");
+                    await loadRecords();
+                }
+            }
+        }
+
+        function getStatusBadge(status) {
+            if (status === 'Reparada') return `<span class="bg-emerald-100 text-emerald-800 text-xs px-2.5 py-1 rounded-full font-bold">Reparada</span>`;
+            if (status === 'Por Reparar') return `<span class="bg-amber-100 text-amber-800 text-xs px-2.5 py-1 rounded-full font-bold">Por Reparar</span>`;
+            return `<span class="bg-rose-100 text-rose-800 text-xs px-2.5 py-1 rounded-full font-bold">Puerta de Segunda</span>`;
+        }
+
+        function getStatusSelectColor(status) {
+            if (status === 'Reparada') return 'bg-emerald-50 text-emerald-700 font-bold border-emerald-300';
+            if (status === 'Por Reparar') return 'bg-amber-50 text-amber-700 font-bold border-amber-300';
+            return 'bg-rose-50 text-rose-700 font-bold border-rose-300';
+        }
+
+        function openModal(id) {
+            const r = records.find(item => String(item.id) === String(id));
+            if (!r) return;
+
+            const content = document.getElementById('modal-content');
+            content.innerHTML = `
+                <div class="grid grid-cols-2 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <div><span class="text-xs text-slate-400 block uppercase">Folio:</span> <strong class="text-slate-800">${r.folio}</strong></div>
+                    <div><span class="text-xs text-slate-400 block uppercase">Orden de Compra:</span> <strong class="text-slate-800">${r.orden_compra || '-'}</strong></div>
+                    <div><span class="text-xs text-slate-400 block uppercase">Modelo:</span> <span class="text-slate-800 font-medium">${r.modelo || '-'}</span></div>
+                    <div><span class="text-xs text-slate-400 block uppercase">Medida:</span> <span class="text-slate-800 font-medium">${r.medida || 'N/A'}</span></div>
+                    <div><span class="text-xs text-slate-400 block uppercase">Cantidad:</span> <span class="text-slate-800 font-bold">${r.cantidad || 0} pieza(s)</span></div>
+                    <div><span class="text-xs text-slate-400 block uppercase">Área:</span> <span class="text-slate-800">${r.area || '-'}</span></div>
+                    <div><span class="text-xs text-slate-400 block uppercase">Defecto:</span> <span class="text-slate-800">${r.defecto || '-'}</span></div>
+                    <div><span class="text-xs text-slate-400 block uppercase">Estatus:</span> ${getStatusBadge(r.estatus)}</div>
+                    <div class="col-span-2"><span class="text-xs text-slate-400 block uppercase">Origen del Defecto:</span> <span class="text-slate-800">${r.origen || '-'}</span></div>
+                    <div class="col-span-2"><span class="text-xs text-slate-400 block uppercase">Fecha de Captura:</span> <span class="text-slate-800">${r.date || '-'}</span></div>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-400 block uppercase font-bold mb-1">Observaciones Técnicas:</span>
+                    <p class="p-3 bg-slate-100 rounded-xl text-slate-700 italic border border-slate-200">${r.notes || 'Sin observaciones.'}</p>
+                </div>
+            `;
+
+            document.getElementById('detail-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('detail-modal').classList.add('hidden');
+        }
+
+        function exportToCSV() {
+            const dataToExport = getFilteredRecords();
+            if (dataToExport.length === 0) {
+                showToast("No hay registros para exportar");
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Folio,Orden_Compra,Modelo,Medida,Cantidad,Area_Deteccion,Defecto,Estatus,Origen,Fecha,Observaciones\n";
+
+            dataToExport.forEach(r => {
+                const cleanNotes = (r.notes || '').replace(/"/g, '""');
+                csvContent += `"${r.folio}","${r.orden_compra || ''}","${r.modelo || ''}","${r.medida || ''}",${r.cantidad || 0},"${r.area || ''}","${r.defecto || ''}","${r.estatus || ''}","${r.origen || ''}","${r.date || ''}","${cleanNotes}"\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `CAPEX_Calidad_Puertas_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showToast("Reporte CSV descargado con éxito");
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').innerText = message;
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.remove('translate-x-full');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+                setTimeout(() => {
+                    toast.classList.add('hidden');
+                }, 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
